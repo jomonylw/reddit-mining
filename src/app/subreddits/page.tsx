@@ -86,7 +86,7 @@ export default function SubredditsPage() {
       toast.success("数据源已删除");
       setDeleteDialogOpen(false);
       setDeletingSubreddit(null);
-    } catch (error) {
+    } catch {
       toast.error("删除失败，请重试");
     }
   };
@@ -100,9 +100,7 @@ export default function SubredditsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">数据源管理</h1>
-          <p className="text-muted-foreground">
-            管理 Reddit Subreddit 数据源配置
-          </p>
+          <p className="text-muted-foreground">管理 Reddit Subreddit 数据源配置</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refetch()}>
@@ -125,9 +123,7 @@ export default function SubredditsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCount}</div>
-            <p className="text-xs text-muted-foreground">
-              已配置的 Subreddit 数量
-            </p>
+            <p className="text-xs text-muted-foreground">已配置的 Subreddit 数量</p>
           </CardContent>
         </Card>
         <Card>
@@ -136,10 +132,10 @@ export default function SubredditsPage() {
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{activeCount}</div>
-            <p className="text-xs text-muted-foreground">
-              正在定期抓取数据
-            </p>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {activeCount}
+            </div>
+            <p className="text-xs text-muted-foreground">正在定期抓取数据</p>
           </CardContent>
         </Card>
         <Card>
@@ -151,9 +147,7 @@ export default function SubredditsPage() {
             <div className="text-2xl font-bold text-muted-foreground">
               {totalCount - activeCount}
             </div>
-            <p className="text-xs text-muted-foreground">
-              暂停抓取的数据源
-            </p>
+            <p className="text-xs text-muted-foreground">暂停抓取的数据源</p>
           </CardContent>
         </Card>
       </div>
@@ -162,17 +156,13 @@ export default function SubredditsPage() {
       <Card>
         <CardHeader>
           <CardTitle>数据源列表</CardTitle>
-          <CardDescription>
-            配置要监控的 Reddit Subreddit
-          </CardDescription>
+          <CardDescription>配置要监控的 Reddit Subreddit</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <SubredditsTableSkeleton />
           ) : error ? (
-            <div className="text-center py-8 text-muted-foreground">
-              加载失败，请刷新重试
-            </div>
+            <div className="text-center py-8 text-muted-foreground">加载失败，请刷新重试</div>
           ) : subreddits && subreddits.length > 0 ? (
             <Table>
               <TableHeader>
@@ -206,6 +196,14 @@ export default function SubredditsPage() {
                               {subreddit.display_name}
                             </p>
                           )}
+                          {subreddit.description && (
+                            <p
+                              className="text-xs text-muted-foreground/80 truncate max-w-[200px]"
+                              title={subreddit.description}
+                            >
+                              {subreddit.description}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -226,15 +224,13 @@ export default function SubredditsPage() {
                     <TableCell>
                       {subreddit.last_fetched_at ? (
                         <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(
-                            new Date(subreddit.last_fetched_at),
-                            { addSuffix: true, locale: zhCN }
-                          )}
+                          {formatDistanceToNow(new Date(subreddit.last_fetched_at), {
+                            addSuffix: true,
+                            locale: zhCN,
+                          })}
                         </span>
                       ) : (
-                        <span className="text-sm text-muted-foreground">
-                          从未抓取
-                        </span>
+                        <span className="text-sm text-muted-foreground">从未抓取</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -252,10 +248,7 @@ export default function SubredditsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
-                              window.open(
-                                `https://reddit.com/r/${subreddit.name}`,
-                                "_blank"
-                              )
+                              window.open(`https://reddit.com/r/${subreddit.name}`, "_blank")
                             }
                           >
                             <ExternalLink className="mr-2 h-4 w-4" />
@@ -280,9 +273,7 @@ export default function SubredditsPage() {
             <div className="text-center py-12">
               <Database className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">暂无数据源</h3>
-              <p className="text-muted-foreground mb-4">
-                添加 Subreddit 以开始监控用户讨论
-              </p>
+              <p className="text-muted-foreground mb-4">添加 Subreddit 以开始监控用户讨论</p>
               <Button onClick={handleAdd}>
                 <Plus className="mr-2 h-4 w-4" />
                 添加第一个数据源

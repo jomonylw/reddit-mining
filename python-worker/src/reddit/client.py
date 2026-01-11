@@ -498,27 +498,29 @@ class RedditClient:
         self,
         subreddit: str,
         post_id: str,
-        limit: int = 5,
+        limit: int = 10,
+        include_replies: bool = True,
     ) -> List[str]:
         """
-        获取帖子的 Top 评论
+        获取帖子的 Top 评论（包括嵌套回复）
         
         Args:
             subreddit: Subreddit 名称
             post_id: 帖子 ID
-            limit: 获取数量上限
+            limit: 获取数量上限（默认 10）
+            include_replies: 是否包含嵌套回复
             
         Returns:
-            评论内容列表
+            评论内容列表（带层级缩进）
         """
         comments: List[str] = []
         
         try:
             endpoint = f"/r/{subreddit}/comments/{post_id}"
             params = {
-                "limit": 20,
+                "limit": 100,  # 获取足够多的评论以便筛选
                 "sort": "top",
-                "depth": 1,
+                # 不设置 depth，获取所有层级
             }
             
             data = self._make_request("GET", endpoint, params=params)
@@ -531,29 +533,81 @@ class RedditClient:
             if "data" not in comments_data or "children" not in comments_data["data"]:
                 return comments
             
-            # 提取评论
-            comment_items = []
+            # 收集所有评论（包括嵌套）
+            all_comments: List[tuple] = []
+            
             for child in comments_data["data"]["children"]:
                 if child.get("kind") != "t1":
                     continue
                 
-                comment_data = child.get("data", {})
-                body = comment_data.get("body", "")
-                score = comment_data.get("score", 0)
-                
-                if body in ["[deleted]", "[removed]"]:
-                    continue
-                
-                comment_items.append((score, body))
+                # 递归提取评论及其回复
+                all_comments.extend(
+                    self._extract_comments_recursive(
+                        child["data"],
+                        include_replies=include_replies,
+                        depth=0,
+                    )
+                )
             
             # 按分数排序取前 N 个
-            comment_items.sort(key=lambda x: x[0], reverse=True)
-            comments = [body for _, body in comment_items[:limit]]
+            all_comments.sort(key=lambda x: x[0], reverse=True)
+            comments = [text for _, text in all_comments[:limit]]
             
         except Exception as e:
             logger.debug(f"获取评论失败 (post_id={post_id}): {e}")
         
         return comments
+    
+    def _extract_comments_recursive(
+        self,
+        comment_data: dict,
+        include_replies: bool = True,
+        depth: int = 0,
+    ) -> List[tuple]:
+        """
+        递归提取评论及其回复
+        
+        Args:
+            comment_data: 评论数据
+            include_replies: 是否包含回复
+            depth: 当前深度
+            
+        Returns:
+            (score, formatted_text) 的列表
+        """
+        results: List[tuple] = []
+        
+        body = comment_data.get("body", "")
+        score = comment_data.get("score", 0)
+        
+        # 过滤删除的评论
+        if body in ["[deleted]", "[removed]"]:
+            return results
+        
+        # 格式化评论（添加层级缩进）
+        if depth == 0:
+            formatted = body
+        else:
+            indent = "→ " * depth
+            formatted = f"{indent}{body}"
+        
+        results.append((score, formatted))
+        
+        # 递归处理回复
+        if include_replies:
+            replies = comment_data.get("replies", {})
+            if isinstance(replies, dict) and "data" in replies:
+                for child in replies["data"].get("children", []):
+                    if child.get("kind") == "t1":
+                        results.extend(
+                            self._extract_comments_recursive(
+                                child["data"],
+                                include_replies=include_replies,
+                                depth=depth + 1,
+                            )
+                        )
+        
+        return results
     
     # --- 兼容旧接口 ---
     

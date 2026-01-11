@@ -46,7 +46,7 @@ export default function HomePage() {
   }, []);
 
   // 复制痛点
-  const handleCopy = useCallback((painPoint: PainPoint) => {
+  const handleCopy = useCallback((_painPoint: PainPoint) => {
     toast.success("已复制到剪贴板");
   }, []);
 
@@ -81,9 +81,7 @@ export default function HomePage() {
       {/* 页面标题 */}
       <div>
         <h1 className="text-2xl font-bold">痛点发现</h1>
-        <p className="text-muted-foreground">
-          从 Reddit 社区讨论中发现真实的用户痛点
-        </p>
+        <p className="text-muted-foreground">从 Reddit 社区讨论中发现真实的用户痛点</p>
       </div>
 
       {/* 统计栏 */}
@@ -114,9 +112,7 @@ export default function HomePage() {
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
           <h3 className="text-lg font-medium mb-2">加载失败</h3>
-          <p className="text-muted-foreground mb-4">
-            {error?.message || "获取数据时发生错误"}
-          </p>
+          <p className="text-muted-foreground mb-4">{error?.message || "获取数据时发生错误"}</p>
           <Button onClick={() => window.location.reload()}>重试</Button>
         </div>
       ) : painPoints.length === 0 ? (

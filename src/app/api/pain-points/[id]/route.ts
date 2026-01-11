@@ -3,11 +3,19 @@
  * GET /api/pain-points/[id] - 获取单个痛点详情
  */
 
-import { NextRequest } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
-import { db } from '@/lib/db/client';
-import { painPoints, posts, subreddits, industries, painPointTypes, tags, painPointTags } from '@/lib/db/schema';
-import { successResponse, ApiErrors } from '@/lib/api/response';
+import { NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import {
+  painPoints,
+  posts,
+  subreddits,
+  industries,
+  painPointTypes,
+  tags,
+  painPointTags,
+} from "@/lib/db/schema";
+import { successResponse, ApiErrors } from "@/lib/api/response";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -37,7 +45,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       .limit(1);
 
     if (results.length === 0) {
-      return ApiErrors.notFound('痛点');
+      return ApiErrors.notFound("痛点");
     }
 
     const { painPoint, post, subreddit, industry, painPointType } = results[0];
@@ -51,7 +59,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       .innerJoin(tags, eq(painPointTags.tagId, tags.id))
       .where(eq(painPointTags.painPointId, id));
 
-    const tagNames = tagsResult.map(t => t.tagName);
+    const tagNames = tagsResult.map((t) => t.tagName);
 
     // 解析 JSON 字段
     const parseJsonField = (field: string | null): string[] | null => {
@@ -63,7 +71,9 @@ export async function GET(request: NextRequest, { params }: Params) {
       }
     };
 
-    const parseDimensionReasons = (field: string | null): Record<string, { score: number; reason: string }> | null => {
+    const parseDimensionReasons = (
+      field: string | null
+    ): Record<string, { score: number; reason: string }> | null => {
       if (!field) return null;
       try {
         return JSON.parse(field);
@@ -84,58 +94,64 @@ export async function GET(request: NextRequest, { params }: Params) {
       quotes: parseJsonField(painPoint.quotes),
       target_personas: parseJsonField(painPoint.targetPersonas),
       actionable_insights: parseJsonField(painPoint.actionableInsights),
-      industry: industry ? {
-        code: industry.code,
-        name: industry.name,
-      } : null,
-      type: painPointType ? {
-        code: painPointType.code,
-        name: painPointType.name,
-      } : null,
+      industry: industry
+        ? {
+            code: industry.code,
+            name: industry.name,
+          }
+        : null,
+      type: painPointType
+        ? {
+            code: painPointType.code,
+            name: painPointType.name,
+          }
+        : null,
       confidence: painPoint.confidence,
       total_score: painPoint.totalScore,
       dimension_scores: {
         urgency: {
           score: painPoint.scoreUrgency,
-          reason: parseDimensionReasons(painPoint.dimensionReasons)?.urgency?.reason || '',
+          reason: parseDimensionReasons(painPoint.dimensionReasons)?.urgency?.reason || "",
         },
         frequency: {
           score: painPoint.scoreFrequency,
-          reason: parseDimensionReasons(painPoint.dimensionReasons)?.frequency?.reason || '',
+          reason: parseDimensionReasons(painPoint.dimensionReasons)?.frequency?.reason || "",
         },
         market_size: {
           score: painPoint.scoreMarketSize,
-          reason: parseDimensionReasons(painPoint.dimensionReasons)?.market_size?.reason || '',
+          reason: parseDimensionReasons(painPoint.dimensionReasons)?.market_size?.reason || "",
         },
         monetization: {
           score: painPoint.scoreMonetization,
-          reason: parseDimensionReasons(painPoint.dimensionReasons)?.monetization?.reason || '',
+          reason: parseDimensionReasons(painPoint.dimensionReasons)?.monetization?.reason || "",
         },
         barrier_to_entry: {
           score: painPoint.scoreBarrierToEntry,
-          reason: parseDimensionReasons(painPoint.dimensionReasons)?.barrier_to_entry?.reason || '',
+          reason: parseDimensionReasons(painPoint.dimensionReasons)?.barrier_to_entry?.reason || "",
         },
       },
       tags: tagNames,
-      post: post ? {
-        id: post.id,
-        subreddit: subreddit?.name || null,
-        reddit_id: post.redditId,
-        title: post.title,
-        content: post.content,
-        author: post.author,
-        url: post.url,
-        score: post.score,
-        num_comments: post.numComments,
-        reddit_created_at: post.redditCreatedAt,
-      } : null,
+      post: post
+        ? {
+            id: post.id,
+            subreddit: subreddit?.name || null,
+            reddit_id: post.redditId,
+            title: post.title,
+            content: post.content,
+            author: post.author,
+            url: post.url,
+            score: post.score,
+            num_comments: post.numComments,
+            reddit_created_at: post.redditCreatedAt,
+          }
+        : null,
       created_at: painPoint.createdAt,
       updated_at: painPoint.updatedAt,
     };
 
     return successResponse(data);
   } catch (error) {
-    console.error('获取痛点详情失败:', error);
-    return ApiErrors.databaseError('获取痛点详情失败');
+    console.error("获取痛点详情失败:", error);
+    return ApiErrors.databaseError("获取痛点详情失败");
   }
 }

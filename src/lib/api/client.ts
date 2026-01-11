@@ -1,10 +1,10 @@
-import { 
-  PainPoint, 
-  Subreddit, 
-  Industry, 
-  PainPointType, 
+import {
+  PainPoint,
+  Subreddit,
+  Industry,
+  PainPointType,
   ApiResponse,
-  PainPointsQuery
+  PainPointsQuery,
 } from "@/types";
 
 const API_BASE = "/api";
@@ -12,10 +12,7 @@ const API_BASE = "/api";
 /**
  * 通用 API 请求函数
  */
-async function fetchApi<T>(
-  endpoint: string,
-  options?: RequestInit
-): Promise<ApiResponse<T>> {
+async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
@@ -40,11 +37,9 @@ async function fetchApi<T>(
 /**
  * 获取痛点列表
  */
-export async function getPainPoints(
-  query?: PainPointsQuery
-): Promise<ApiResponse<PainPoint[]>> {
+export async function getPainPoints(query?: PainPointsQuery): Promise<ApiResponse<PainPoint[]>> {
   const params = new URLSearchParams();
-  
+
   if (query?.page) params.set("page", String(query.page));
   if (query?.limit) params.set("limit", String(query.limit));
   if (query?.industry) params.set("industry", query.industry);
@@ -87,9 +82,7 @@ export async function getSubreddit(id: string): Promise<ApiResponse<Subreddit>> 
 /**
  * 创建 Subreddit
  */
-export async function createSubreddit(
-  data: Partial<Subreddit>
-): Promise<ApiResponse<Subreddit>> {
+export async function createSubreddit(data: Partial<Subreddit>): Promise<ApiResponse<Subreddit>> {
   return fetchApi<Subreddit>("/subreddits", {
     method: "POST",
     body: JSON.stringify(data),

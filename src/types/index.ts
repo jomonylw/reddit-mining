@@ -2,6 +2,12 @@
  * 业务类型定义
  */
 
+// 用户原声引用（双语）
+export interface Quote {
+  en: string; // 英文原文
+  zh: string; // 中文翻译
+}
+
 // 行业代码枚举
 export type IndustryCode =
   | "DEV_TOOLS"
@@ -75,7 +81,7 @@ export interface PainPoint {
   current_solution?: string;
   ideal_solution?: string;
   mentioned_competitors?: string[];
-  quotes?: string[];
+  quotes?: (Quote | string)[]; // 支持新旧两种格式，兼容历史数据
   target_personas?: string[];
   actionable_insights?: string[];
   industry_code?: IndustryCode;

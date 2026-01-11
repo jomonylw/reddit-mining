@@ -1,12 +1,7 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getPainPoints,
-  getPainPoint,
-  getIndustries,
-  getPainPointTypes,
-} from "@/lib/api/client";
+import { useQuery } from "@tanstack/react-query";
+import { getPainPoints, getPainPoint, getIndustries, getPainPointTypes } from "@/lib/api/client";
 import { PainPointsQuery } from "@/types";
 
 // Query Keys

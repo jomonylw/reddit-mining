@@ -97,6 +97,12 @@ class ScoresDict(BaseModel):
     barrier_to_entry: Score = Field(..., description="准入门槛")
 
 
+class Quote(BaseModel):
+    """用户原声引用（双语）"""
+    en: str = Field(..., description="英文原文")
+    zh: str = Field(..., description="中文翻译")
+
+
 class PainPointExtraction(BaseModel):
     """LLM 提取的痛点信息"""
     title: str = Field(..., max_length=200, description="痛点标题（中文，一句话概括）")
@@ -108,7 +114,7 @@ class PainPointExtraction(BaseModel):
     type_code: str = Field(..., description="痛点类型代码")
     tags: List[str] = Field(default_factory=list, description="标签列表（中文，最多5个）")
     mentioned_competitors: List[str] = Field(default_factory=list, description="提及的竞品")
-    quotes: List[str] = Field(default_factory=list, description="原文引用")
+    quotes: List[Quote] = Field(default_factory=list, description="原文引用（中英双语）")
     target_personas: List[str] = Field(default_factory=list, description="目标用户角色（中文）")
     actionable_insights: List[str] = Field(default_factory=list, description="行动建议（中文）")
     scores: ScoresDict = Field(..., description="各维度评分")
@@ -186,7 +192,7 @@ class PainPoint(BaseModel):
     current_solution: Optional[str] = None
     ideal_solution: Optional[str] = None
     mentioned_competitors: Optional[List[str]] = None
-    quotes: Optional[List[str]] = None
+    quotes: Optional[List[Quote]] = None
     target_personas: Optional[List[str]] = None
     actionable_insights: Optional[List[str]] = None
     industry_code: Optional[str] = None

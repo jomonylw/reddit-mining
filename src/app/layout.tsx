@@ -33,9 +33,7 @@ export default function RootLayout({
           <QueryProvider>
             <div className="relative min-h-screen flex flex-col">
               <Header />
-              <main className="flex-1 container py-6">
-                {children}
-              </main>
+              <main className="flex-1 container py-6">{children}</main>
               <footer className="border-t py-4">
                 <div className="container text-center text-sm text-muted-foreground">
                   © 2026 Reddit Mining · 为独立开发者而生

@@ -25,7 +25,7 @@ interface DimensionRadarProps {
 export function DimensionRadar({
   scores,
   size = 300,
-  showLabels = true,
+  showLabels: _showLabels = true,
   className,
 }: DimensionRadarProps) {
   // 将评分数据转换为雷达图格式
@@ -120,8 +120,16 @@ export function DimensionList({
     { key: "urgency" as const, name: DIMENSION_NAMES.urgency, score: scores.urgency },
     { key: "frequency" as const, name: DIMENSION_NAMES.frequency, score: scores.frequency },
     { key: "market_size" as const, name: DIMENSION_NAMES.market_size, score: scores.market_size },
-    { key: "monetization" as const, name: DIMENSION_NAMES.monetization, score: scores.monetization },
-    { key: "barrier_to_entry" as const, name: DIMENSION_NAMES.barrier_to_entry, score: scores.barrier_to_entry },
+    {
+      key: "monetization" as const,
+      name: DIMENSION_NAMES.monetization,
+      score: scores.monetization,
+    },
+    {
+      key: "barrier_to_entry" as const,
+      name: DIMENSION_NAMES.barrier_to_entry,
+      score: scores.barrier_to_entry,
+    },
   ];
 
   const getScoreColor = (score: number) => {
@@ -145,9 +153,7 @@ export function DimensionList({
           <div key={key}>
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-muted-foreground">{name}</span>
-              <span className={`text-sm font-medium ${getScoreColor(score)}`}>
-                {score}/10
-              </span>
+              <span className={`text-sm font-medium ${getScoreColor(score)}`}>{score}/10</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
@@ -156,9 +162,7 @@ export function DimensionList({
               />
             </div>
             {reasons?.[key] && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {reasons[key]}
-              </p>
+              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{reasons[key]}</p>
             )}
           </div>
         ))}

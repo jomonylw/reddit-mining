@@ -34,9 +34,9 @@ export function Header() {
         {/* Navigation */}
         <nav className="flex items-center gap-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || 
-              (item.href !== "/" && pathname.startsWith(item.href));
-            
+            const isActive =
+              pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+
             return (
               <Link
                 key={item.href}

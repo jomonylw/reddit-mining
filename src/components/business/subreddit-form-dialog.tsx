@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -39,13 +39,9 @@ const FETCH_FREQUENCIES = [
 
 const POSTS_LIMITS = [10, 25, 50, 100];
 
-export function SubredditFormDialog({
-  open,
-  onOpenChange,
-  subreddit,
-}: SubredditFormDialogProps) {
+export function SubredditFormDialog({ open, onOpenChange, subreddit }: SubredditFormDialogProps) {
   const isEditing = !!subreddit;
-  
+
   // 使用 useMemo 计算初始值，避免在 effect 中调用 setState
   const initialFormData = useMemo(() => {
     if (subreddit) {
@@ -69,6 +65,11 @@ export function SubredditFormDialog({
   }, [subreddit]);
 
   const [formData, setFormData] = useState(initialFormData);
+
+  // 监听 initialFormData 变化，同步更新表单数据
+  useEffect(() => {
+    setFormData(initialFormData);
+  }, [initialFormData]);
 
   // 当 subreddit 变化时重置表单（通过 key 重新挂载组件更好，但这里使用简单方式）
   const formKey = subreddit?.id || "new";
@@ -105,7 +106,7 @@ export function SubredditFormDialog({
         toast.success("Subreddit 添加成功");
       }
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast.error(isEditing ? "更新失败，请重试" : "添加失败，请重试");
     }
   };
@@ -115,13 +116,9 @@ export function SubredditFormDialog({
       <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>
-              {isEditing ? "编辑数据源" : "添加数据源"}
-            </DialogTitle>
+            <DialogTitle>{isEditing ? "编辑数据源" : "添加数据源"}</DialogTitle>
             <DialogDescription>
-              {isEditing
-                ? "修改 Subreddit 配置信息"
-                : "添加新的 Subreddit 作为数据源"}
+              {isEditing ? "修改 Subreddit 配置信息" : "添加新的 Subreddit 作为数据源"}
             </DialogDescription>
           </DialogHeader>
 
@@ -145,9 +142,7 @@ export function SubredditFormDialog({
                 />
               </div>
               {isEditing && (
-                <p className="text-xs text-muted-foreground">
-                  Subreddit 名称创建后不可修改
-                </p>
+                <p className="text-xs text-muted-foreground">Subreddit 名称创建后不可修改</p>
               )}
             </div>
 
@@ -158,9 +153,7 @@ export function SubredditFormDialog({
                 id="display_name"
                 placeholder="可选，用于界面显示的友好名称"
                 value={formData.display_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, display_name: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               />
             </div>
 
@@ -171,9 +164,7 @@ export function SubredditFormDialog({
                 id="description"
                 placeholder="可选，简短描述此数据源的用途"
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
@@ -182,9 +173,7 @@ export function SubredditFormDialog({
               <Label htmlFor="fetch_frequency">抓取频率</Label>
               <Select
                 value={formData.fetch_frequency}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, fetch_frequency: value })
-                }
+                onValueChange={(value) => setFormData({ ...formData, fetch_frequency: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="选择抓取频率" />
@@ -204,9 +193,7 @@ export function SubredditFormDialog({
               <Label htmlFor="posts_limit">每次抓取帖子数</Label>
               <Select
                 value={String(formData.posts_limit)}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, posts_limit: Number(value) })
-                }
+                onValueChange={(value) => setFormData({ ...formData, posts_limit: Number(value) })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="选择帖子数量" />
@@ -225,9 +212,7 @@ export function SubredditFormDialog({
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="is_active">启用数据源</Label>
-                <p className="text-xs text-muted-foreground">
-                  停用后将不再抓取此 Subreddit 的数据
-                </p>
+                <p className="text-xs text-muted-foreground">停用后将不再抓取此 Subreddit 的数据</p>
               </div>
               <Switch
                 id="is_active"
@@ -240,11 +225,7 @@ export function SubredditFormDialog({
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
             <Button type="submit" disabled={isLoading}>

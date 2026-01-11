@@ -5,11 +5,11 @@
  * DELETE /api/subreddits/[id] - 删除配置
  */
 
-import { NextRequest } from 'next/server';
-import { eq } from 'drizzle-orm';
-import { db } from '@/lib/db/client';
-import { subreddits } from '@/lib/db/schema';
-import { successResponse, ApiErrors } from '@/lib/api/response';
+import { NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { subreddits } from "@/lib/db/schema";
+import { successResponse, ApiErrors } from "@/lib/api/response";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,14 +21,10 @@ export async function GET(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
 
-    const result = await db
-      .select()
-      .from(subreddits)
-      .where(eq(subreddits.id, id))
-      .limit(1);
+    const result = await db.select().from(subreddits).where(eq(subreddits.id, id)).limit(1);
 
     if (result.length === 0) {
-      return ApiErrors.notFound('Subreddit');
+      return ApiErrors.notFound("Subreddit");
     }
 
     const sub = result[0];
@@ -46,8 +42,8 @@ export async function GET(request: NextRequest, { params }: Params) {
       updated_at: sub.updatedAt,
     });
   } catch (error) {
-    console.error('获取 Subreddit 详情失败:', error);
-    return ApiErrors.databaseError('获取 Subreddit 详情失败');
+    console.error("获取 Subreddit 详情失败:", error);
+    return ApiErrors.databaseError("获取 Subreddit 详情失败");
   }
 }
 
@@ -61,14 +57,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const body = await request.json();
 
     // 检查是否存在
-    const existing = await db
-      .select()
-      .from(subreddits)
-      .where(eq(subreddits.id, id))
-      .limit(1);
+    const existing = await db.select().from(subreddits).where(eq(subreddits.id, id)).limit(1);
 
     if (existing.length === 0) {
-      return ApiErrors.notFound('Subreddit');
+      return ApiErrors.notFound("Subreddit");
     }
 
     // 构建更新数据
@@ -87,10 +79,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
     if (body.fetch_frequency !== undefined) {
       // 验证频率值
-      const validFrequencies = ['hourly', 'daily', 'weekly'];
+      const validFrequencies = ["hourly", "daily", "weekly"];
       if (!validFrequencies.includes(body.fetch_frequency)) {
-        return ApiErrors.validationError('无效的抓取频率', [
-          { field: 'fetch_frequency', message: '必须是 hourly, daily 或 weekly' },
+        return ApiErrors.validationError("无效的抓取频率", [
+          { field: "fetch_frequency", message: "必须是 hourly, daily 或 weekly" },
         ]);
       }
       updateData.fetchFrequency = body.fetch_frequency;
@@ -98,25 +90,18 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (body.posts_limit !== undefined) {
       const limit = parseInt(body.posts_limit, 10);
       if (isNaN(limit) || limit < 1 || limit > 500) {
-        return ApiErrors.validationError('无效的帖子数量限制', [
-          { field: 'posts_limit', message: '必须是 1-500 之间的数字' },
+        return ApiErrors.validationError("无效的帖子数量限制", [
+          { field: "posts_limit", message: "必须是 1-500 之间的数字" },
         ]);
       }
       updateData.postsLimit = limit;
     }
 
     // 执行更新
-    await db
-      .update(subreddits)
-      .set(updateData)
-      .where(eq(subreddits.id, id));
+    await db.update(subreddits).set(updateData).where(eq(subreddits.id, id));
 
     // 获取更新后的数据
-    const updated = await db
-      .select()
-      .from(subreddits)
-      .where(eq(subreddits.id, id))
-      .limit(1);
+    const updated = await db.select().from(subreddits).where(eq(subreddits.id, id)).limit(1);
 
     const sub = updated[0];
 
@@ -133,8 +118,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       updated_at: sub.updatedAt,
     });
   } catch (error) {
-    console.error('更新 Subreddit 失败:', error);
-    return ApiErrors.databaseError('更新 Subreddit 失败');
+    console.error("更新 Subreddit 失败:", error);
+    return ApiErrors.databaseError("更新 Subreddit 失败");
   }
 }
 
@@ -147,14 +132,10 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const { id } = await params;
 
     // 检查是否存在
-    const existing = await db
-      .select()
-      .from(subreddits)
-      .where(eq(subreddits.id, id))
-      .limit(1);
+    const existing = await db.select().from(subreddits).where(eq(subreddits.id, id)).limit(1);
 
     if (existing.length === 0) {
-      return ApiErrors.notFound('Subreddit');
+      return ApiErrors.notFound("Subreddit");
     }
 
     // 删除记录
@@ -163,7 +144,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     // 返回 204 No Content
     return new Response(null, { status: 204 });
   } catch (error) {
-    console.error('删除 Subreddit 失败:', error);
-    return ApiErrors.databaseError('删除 Subreddit 失败');
+    console.error("删除 Subreddit 失败:", error);
+    return ApiErrors.databaseError("删除 Subreddit 失败");
   }
 }

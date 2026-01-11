@@ -10,11 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import {
@@ -48,7 +44,7 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
 
   // 获取已选中的筛选条件
   const activeFilters: { key: string; label: string }[] = [];
-  
+
   if (filters.industry) {
     activeFilters.push({
       key: "industry",
@@ -132,15 +128,25 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="pl-9 pr-4"
+            className="pl-9 pr-9"
           />
+          {searchValue && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchValue("");
+                onFiltersChange({ ...filters, search: undefined, page: 1 });
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="清除搜索"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* 行业筛选 */}
-        <Select
-          value={filters.industry || "all"}
-          onValueChange={handleIndustryChange}
-        >
+        <Select value={filters.industry || "all"} onValueChange={handleIndustryChange}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="行业" />
           </SelectTrigger>
@@ -174,10 +180,7 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
               {/* 痛点类型 */}
               <div className="space-y-2">
                 <label className="text-sm text-muted-foreground">痛点类型</label>
-                <Select
-                  value={filters.type || "all"}
-                  onValueChange={handleTypeChange}
-                >
+                <Select value={filters.type || "all"} onValueChange={handleTypeChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="全部类型" />
                   </SelectTrigger>
@@ -196,10 +199,7 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
               <div className="space-y-2">
                 <label className="text-sm text-muted-foreground">排序方式</label>
                 <div className="flex gap-2">
-                  <Select
-                    value={filters.sort || "total_score"}
-                    onValueChange={handleSortChange}
-                  >
+                  <Select value={filters.sort || "total_score"} onValueChange={handleSortChange}>
                     <SelectTrigger className="flex-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -242,7 +242,7 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">已选:</span>
-          
+
           {filters.search && (
             <Badge variant="secondary" className="gap-1">
               搜索: {filters.search}
@@ -259,19 +259,11 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
           {activeFilters.map((filter) => (
             <Badge key={filter.key} variant="secondary" className="gap-1">
               {filter.label}
-              <X
-                className="h-3 w-3 cursor-pointer"
-                onClick={() => removeFilter(filter.key)}
-              />
+              <X className="h-3 w-3 cursor-pointer" onClick={() => removeFilter(filter.key)} />
             </Badge>
           ))}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={onClear}
-          >
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onClear}>
             清除所有
           </Button>
         </div>

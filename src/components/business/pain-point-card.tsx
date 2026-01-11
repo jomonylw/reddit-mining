@@ -2,11 +2,9 @@
 
 import { PainPoint, IndustryCode, PainPointTypeCode, DIMENSION_NAMES } from "@/types";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ScoreBadge } from "./score-badge";
 import { IndustryBadge, TypeBadge } from "./type-badge";
 import {
-  Copy,
   Lightbulb,
   ArrowUp,
   MessageCircle,
@@ -15,7 +13,7 @@ import {
   Clock,
   Target,
   DollarSign,
-  Shield
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -48,17 +46,11 @@ const DIMENSION_COLORS: Record<string, string> = {
 /**
  * 迷你维度评分条
  */
-function MiniDimensionBar({
-  dimension,
-  score
-}: {
-  dimension: string;
-  score: number;
-}) {
+function MiniDimensionBar({ dimension, score }: { dimension: string; score: number }) {
   const Icon = DIMENSION_ICONS[dimension] || TrendingUp;
   const colorClass = DIMENSION_COLORS[dimension] || "bg-gray-500";
   const dimensionName = DIMENSION_NAMES[dimension as keyof typeof DIMENSION_NAMES] || dimension;
-  
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -74,7 +66,9 @@ function MiniDimensionBar({
           </div>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          <p>{dimensionName}: {score}/10</p>
+          <p>
+            {dimensionName}: {score}/10
+          </p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -84,12 +78,7 @@ function MiniDimensionBar({
 /**
  * 痛点卡片组件
  */
-export function PainPointCard({
-  painPoint,
-  onClick,
-  onCopy,
-  className,
-}: PainPointCardProps) {
+export function PainPointCard({ painPoint, onClick, onCopy: _onCopy, className }: PainPointCardProps) {
   // 格式化时间
   const formatTime = (dateString?: string) => {
     if (!dateString) return "";
@@ -105,23 +94,14 @@ export function PainPointCard({
     return date.toLocaleDateString("zh-CN");
   };
 
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onCopy?.(painPoint);
-    // 复制到剪贴板
-    navigator.clipboard.writeText(
-      `${painPoint.title}\n\n${painPoint.description}`
-    );
-  };
-
   const handleCardClick = () => {
     onClick?.(painPoint);
   };
 
   // 获取维度评分（处理对象或数字格式）
   const getDimensionScore = (value: unknown): number => {
-    if (typeof value === 'number') return value;
-    if (typeof value === 'object' && value !== null && 'score' in value) {
+    if (typeof value === "number") return value;
+    if (typeof value === "object" && value !== null && "score" in value) {
       return (value as { score: number }).score;
     }
     return 0;
@@ -147,10 +127,15 @@ export function PainPointCard({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <ScoreBadge score={painPoint.total_score} size="sm" />
+            <ScoreBadge
+              score={painPoint.total_score}
+              confidence={painPoint.confidence}
+              showConfidence={true}
+              size="sm"
+            />
           </div>
         </div>
-        
+
         {/* 标题 */}
         <h3 className="font-bold text-lg leading-snug line-clamp-2 group-hover:text-primary transition-colors">
           {painPoint.title}
@@ -167,11 +152,7 @@ export function PainPointCard({
         {painPoint.dimension_scores && (
           <div className="flex flex-wrap gap-x-4 gap-y-2 p-2 bg-muted/30 rounded-lg">
             {Object.entries(painPoint.dimension_scores).map(([key, value]) => (
-              <MiniDimensionBar
-                key={key}
-                dimension={key}
-                score={getDimensionScore(value)}
-              />
+              <MiniDimensionBar key={key} dimension={key} score={getDimensionScore(value)} />
             ))}
           </div>
         )}
@@ -234,7 +215,7 @@ export function PainPointCard({
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className="opacity-70">{formatTime(painPoint.created_at)}</span>
             {/* 复制按钮 */}

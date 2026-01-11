@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Package manager files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Generated files
+drizzle/
+*.generated.*
+
+# Environment files
+.env*
+
+# Python worker (has its own formatting)
+python-worker/
+
+# Misc
+*.min.js
+*.min.css
+coverage/
+.vercel/

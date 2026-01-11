@@ -173,6 +173,11 @@ class Processor:
         else:
             main_content = content.replace("【正文】", "").strip()
         
+        # 限制评论长度（最大 5000 字符）
+        max_comments_chars = 5000
+        if len(top_comments) > max_comments_chars:
+            top_comments = top_comments[:max_comments_chars] + "\n[... 评论因长度限制被截断]"
+        
         return build_user_prompt(
             subreddit=post.get("subreddit_name", "unknown"),
             title=post["title"],
@@ -218,7 +223,7 @@ class Processor:
             current_solution=pain_point.current_solution,
             ideal_solution=pain_point.ideal_solution,
             mentioned_competitors=json.dumps(pain_point.mentioned_competitors) if pain_point.mentioned_competitors else None,
-            quotes=json.dumps(pain_point.quotes) if pain_point.quotes else None,
+            quotes=json.dumps([q.model_dump() for q in pain_point.quotes]) if pain_point.quotes else None,
             target_personas=json.dumps(pain_point.target_personas) if pain_point.target_personas else None,
             actionable_insights=json.dumps(pain_point.actionable_insights) if pain_point.actionable_insights else None,
             industry_code=pain_point.industry_code,

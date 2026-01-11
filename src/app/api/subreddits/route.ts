@@ -4,12 +4,12 @@
  * POST /api/subreddits - 创建新配置
  */
 
-import { NextRequest } from 'next/server';
-import { eq, sql, count } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
-import { db } from '@/lib/db/client';
-import { subreddits, posts, painPoints } from '@/lib/db/schema';
-import { successResponse, ApiErrors } from '@/lib/api/response';
+import { NextRequest } from "next/server";
+import { eq, count } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
+import { db } from "@/lib/db/client";
+import { subreddits, posts, painPoints } from "@/lib/db/schema";
+import { successResponse, ApiErrors } from "@/lib/api/response";
 
 /**
  * GET /api/subreddits
@@ -18,14 +18,14 @@ import { successResponse, ApiErrors } from '@/lib/api/response';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const isActiveParam = searchParams.get('is_active');
+    const isActiveParam = searchParams.get("is_active");
 
     // 构建查询
     let query = db.select().from(subreddits);
 
     // 筛选活跃状态
     if (isActiveParam !== null) {
-      const isActive = isActiveParam === 'true';
+      const isActive = isActiveParam === "true";
       query = query.where(eq(subreddits.isActive, isActive)) as typeof query;
     }
 
@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
 
     return successResponse(dataWithStats);
   } catch (error) {
-    console.error('获取 Subreddit 列表失败:', error);
-    return ApiErrors.databaseError('获取 Subreddit 列表失败');
+    console.error("获取 Subreddit 列表失败:", error);
+    return ApiErrors.databaseError("获取 Subreddit 列表失败");
   }
 }
 
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
 
     // 验证必填字段
     if (!body.name) {
-      return ApiErrors.validationError('缺少必填字段', [
-        { field: 'name', message: 'Subreddit 名称是必填的' },
+      return ApiErrors.validationError("缺少必填字段", [
+        { field: "name", message: "Subreddit 名称是必填的" },
       ]);
     }
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       displayName: body.display_name || body.name,
       description: body.description || null,
       isActive: body.is_active !== false,
-      fetchFrequency: body.fetch_frequency || 'daily',
+      fetchFrequency: body.fetch_frequency || "daily",
       postsLimit: body.posts_limit || 100,
       lastFetchedAt: null,
       createdAt: now,
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       undefined
     );
   } catch (error) {
-    console.error('创建 Subreddit 失败:', error);
-    return ApiErrors.databaseError('创建 Subreddit 失败');
+    console.error("创建 Subreddit 失败:", error);
+    return ApiErrors.databaseError("创建 Subreddit 失败");
   }
 }

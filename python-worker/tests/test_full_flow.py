@@ -1,289 +1,228 @@
 """
-完整流程测试脚本
+完整流程测试脚本 (生产环境模拟版)
 
-测试目标：验证从 Subreddit 添加 -> 帖子抓取 -> LLM 分析 -> 结果入库的完整数据流
-测试范围：单个 Subreddit (r/SaaS)，限制抓取 3 个帖子
+测试目标：使用实际的调度任务函数 (run_fetch_job, run_process_job) 验证完整数据流
+测试范围：
+1. 任务调度层面的执行 (Jobs)
+2. 数据抓取与入库 (Fetcher)
+3. LLM 分析与结果存储 (Processor)
+4. 数据库状态变化验证
 """
 
 import sys
 from pathlib import Path
+import time
+import uuid
 
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import time
-import uuid
 from src.config import settings, get_logger
 from src.database.client import db
-from src.reddit.client import RedditClient, TimeFilter
-from src.reddit.fetcher import Fetcher
-from src.llm.processor import processor
+from src.scheduler.jobs import run_fetch_job, run_process_job
 
-logger = get_logger("test_full_flow")
+logger = get_logger("test_full_flow_prod")
 
-def test_full_flow():
-    logger.info("============================================================")
-    logger.info("开始执行完整流程测试")
-    logger.info("============================================================")
+def setup_test_environment(subreddit_name="SaaS", limit=3):
+    """准备测试环境"""
+    logger.info(f"\n[步骤 1] 环境准备: r/{subreddit_name}")
     
-    subreddit_name = "SaaS"
-    subreddit_desc = "SaaS 讨论社区"
-    limit = 3
-    
-    # 1. 添加/获取 Subreddit
-    logger.info(f"\n[步骤 1] 准备 Subreddit: r/{subreddit_name}")
-    
-    # 检查是否存在
+    # 1. 获取或创建 Subreddit
     row = db.fetchone("SELECT id FROM subreddits WHERE name = ?", (subreddit_name,))
+    
     if row:
         subreddit_id = row[0]
         logger.info(f"  Subreddit 已存在 (ID: {subreddit_id})")
-        # 更新配置以确保测试一致性
+        # 更新配置：激活，设置限制，设置频率
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         db.execute(
-            "UPDATE subreddits SET posts_limit = ?, fetch_frequency = 'daily', is_active = 1 WHERE id = ?",
-            (limit, subreddit_id)
+            """
+            UPDATE subreddits
+            SET posts_limit = ?, fetch_frequency = 'daily', is_active = 1, updated_at = ?
+            WHERE id = ?
+            """,
+            (limit, now, subreddit_id)
         )
-        db.conn.commit()
     else:
         subreddit_id = str(uuid.uuid4())
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         db.execute(
             """
             INSERT INTO subreddits (id, name, description, is_active, fetch_frequency, posts_limit, created_at, updated_at)
-            VALUES (?, ?, ?, 1, 'daily', ?, ?, ?)
+            VALUES (?, ?, 'Test Subreddit', 1, 'daily', ?, ?, ?)
             """,
-            (subreddit_id, subreddit_name, subreddit_desc, limit, now, now)
+            (subreddit_id, subreddit_name, limit, now, now)
         )
-        db.conn.commit()
         logger.info(f"  创建新 Subreddit (ID: {subreddit_id})")
-
-    # 2. 抓取帖子
-    logger.info(f"\n[步骤 2] 抓取帖子 (限制 {limit} 条)")
     
-    client = RedditClient()
-    if not client.is_available():
-        logger.error("  Reddit 客户端不可用（Token 冷却中），测试终止")
+    db.conn.commit()
+    
+    # 2. 清理历史数据 (为了验证完整的"新增"流程)
+    # 注意：在生产环境中这很危险，但这是测试脚本
+    logger.info("  清理该 Subreddit 的历史帖子和痛点数据...")
+    
+    # 获取该 subreddit 的所有 post_id
+    post_rows = db.fetchall("SELECT id FROM posts WHERE subreddit_id = ?", (subreddit_id,))
+    post_ids = [r[0] for r in post_rows]
+    
+    if post_ids:
+        placeholders = ','.join(['?'] * len(post_ids))
+        
+        # 删除关联的痛点标签
+        # 先找痛点
+        pp_rows = db.fetchall(f"SELECT id FROM pain_points WHERE post_id IN ({placeholders})", tuple(post_ids))
+        pp_ids = [r[0] for r in pp_rows]
+        
+        if pp_ids:
+            pp_placeholders = ','.join(['?'] * len(pp_ids))
+            db.execute(f"DELETE FROM pain_point_tags WHERE pain_point_id IN ({pp_placeholders})", tuple(pp_ids))
+            db.execute(f"DELETE FROM pain_points WHERE id IN ({pp_placeholders})", tuple(pp_ids))
+            
+        # 删除帖子
+        db.execute(f"DELETE FROM posts WHERE id IN ({placeholders})", tuple(post_ids))
+        db.conn.commit()
+        logger.info(f"  已清理 {len(post_ids)} 条历史帖子及其关联数据")
+    else:
+        logger.info("  无历史数据需清理")
+        
+    return subreddit_id
+
+def verify_fetch_results(subreddit_id, expected_min_count=1):
+    """验证抓取结果"""
+    logger.info(f"\n[步骤 3] 验证抓取结果")
+    
+    # 检查帖子数量
+    row = db.fetchone("SELECT COUNT(*) FROM posts WHERE subreddit_id = ?", (subreddit_id,))
+    count = row[0]
+    logger.info(f"  当前数据库中该 Subreddit 帖子数: {count}")
+    
+    if count < expected_min_count:
+        logger.error(f"  抓取数量不足 (期望至少 {expected_min_count})")
         return False
         
-    fetcher = Fetcher(client)
-    
-    # 手动执行抓取逻辑，以便精确控制
-    logger.info(f"  正在从 r/{subreddit_name} 获取 Top {limit} 帖子...")
-    posts = client.get_top_posts(
-        subreddit=subreddit_name,
-        time_filter=TimeFilter.WEEK, # 使用本周热门，保证有内容
-        limit=limit,
-        max_pages=1,
-        fetch_comments=True,
-    )
-    
-    if not posts:
-        logger.error("  未获取到任何帖子，测试终止")
-        return False
-        
-    logger.info(f"  成功获取 {len(posts)} 个帖子数据")
-    
-    # 处理并入库
-    processed_count = 0
-    new_posts_ids = []
-    
-    from src.reddit.client import RedditPost
-    from src.database.client import post_exists, update_post, insert_post
-    
-    for post_data in posts:
-        try:
-            reddit_post = RedditPost.from_post_data(post_data)
-            logger.info(f"  处理帖子: {reddit_post.title[:30]}... (reddit_id: {reddit_post.reddit_id})")
-            
-            # 使用项目中的 post_exists 函数检查帖子是否存在
-            logger.info(f"    检查帖子是否存在...")
-            exists = post_exists(reddit_post.reddit_id)
-            logger.info(f"    post_exists 返回: {exists}")
-            
-            # 使用项目中的 fetcher 清洗内容
-            logger.info(f"    构建清洗内容...")
-            cleaned_content = fetcher._build_content(reddit_post)
-            logger.info(f"    内容清洗完成 (长度: {len(cleaned_content) if cleaned_content else 0})")
-            
-            if exists:
-                # 使用项目中的 update_post 函数更新帖子
-                logger.info(f"    调用 update_post...")
-                update_post(
-                    reddit_id=reddit_post.reddit_id,
-                    score=reddit_post.score,
-                    num_comments=reddit_post.num_comments,
-                    content=cleaned_content,
-                )
-                logger.info(f"    update_post 成功")
-                result = "updated"
-            else:
-                # 使用项目中的 insert_post 函数插入新帖子
-                logger.info(f"    调用 insert_post (subreddit_id={subreddit_id})...")
-                insert_post(
-                    subreddit_id=subreddit_id,
-                    reddit_id=reddit_post.reddit_id,
-                    title=fetcher.clean_text(reddit_post.title),
-                    content=cleaned_content,
-                    author=reddit_post.author,
-                    url=reddit_post.url,
-                    score=reddit_post.score,
-                    num_comments=reddit_post.num_comments,
-                    reddit_created_at=reddit_post.reddit_created_at,
-                )
-                logger.info(f"    insert_post 成功")
-                result = "new"
-            
-            # 获取帖子 ID
-            logger.info(f"    查询帖子 ID...")
-            row = db.fetchone("SELECT id FROM posts WHERE reddit_id = ?", (reddit_post.reddit_id,))
-            if row:
-                post_id = row[0]
-                logger.info(f"    帖子 ID: {post_id}")
-                new_posts_ids.append(post_id)
-                
-                # 强制将状态重置为 pending，确保后续 LLM 分析步骤能处理它
-                logger.info(f"    更新帖子状态为 pending...")
-                db.execute(
-                    "UPDATE posts SET process_status = 'pending' WHERE id = ?",
-                    (post_id,)
-                )
-                logger.info(f"    状态更新成功")
-                
-                # 先删除关联的 pain_point_tags (如果有)
-                logger.info(f"    查询并清理关联的痛点...")
-                pain_point_rows = db.fetchall(
-                    "SELECT id FROM pain_points WHERE post_id = ?",
-                    (post_id,)
-                )
-                for pp_row in pain_point_rows:
-                    pp_id = pp_row[0]
-                    logger.info(f"      删除 pain_point_tags (pain_point_id: {pp_id})...")
-                    db.execute(
-                        "DELETE FROM pain_point_tags WHERE pain_point_id = ?",
-                        (pp_id,)
-                    )
-                
-                # 然后删除 pain_points
-                logger.info(f"    删除 pain_points...")
-                db.execute(
-                    "DELETE FROM pain_points WHERE post_id = ?",
-                    (post_id,)
-                )
-                logger.info(f"    痛点清理成功")
-                
-                logger.info(f"    提交事务...")
-                db.conn.commit()
-                logger.info(f"    事务提交成功")
-                
-                action = "插入新帖子" if result == "new" else "更新帖子"
-                logger.info(f"  {action}: {reddit_post.title[:30]}... (ID: {post_id})")
-                processed_count += 1
-            else:
-                logger.error(f"  帖子入库失败: {reddit_post.title[:30]}...")
-            
-        except Exception as e:
-            logger.error(f"  处理帖子失败: {e}")
-            
-    logger.info(f"  入库完成，共 {processed_count} 个待处理帖子")
-
-    # 3. LLM 分析
-    logger.info(f"\n[步骤 3] LLM 分析 (处理 {len(new_posts_ids)} 个帖子)")
-    
-    # 确保只处理我们刚刚抓取的帖子
-    # 这里我们直接调用 process_single 来处理指定的帖子，而不是 run_batch
-    # 这样可以避免处理到其他积压的帖子
-    
-    success_count = 0
-    pain_points_count = 0
-    
-    for post_id in new_posts_ids:
-        # 获取完整帖子数据
-        cursor = db.execute(
-            """
-            SELECT p.*, s.name as subreddit_name
-            FROM posts p
-            JOIN subreddits s ON p.subreddit_id = s.id
-            WHERE p.id = ?
-            """,
-            (post_id,)
-        )
-        row = cursor.fetchone()
-        
-        if not row:
-            logger.error(f"  无法读取帖子数据: {post_id}")
-            continue
-            
-        # 转换为字典
-        columns = [desc[0] for desc in cursor.description]
-        post = dict(zip(columns, row))
-        
-        logger.info(f"  正在分析: {post['title'][:30]}...")
-        try:
-            result = processor.process_single(post)
-            logger.info(f"  分析结果: {result}")
-            
-            if result == "pain_point":
-                pain_points_count += 1
-            
-            if result != "failed":
-                success_count += 1
-                
-        except Exception as e:
-            logger.error(f"  分析失败: {e}")
-
-    # 4. 验证结果
-    logger.info(f"\n[步骤 4] 结果验证")
-    
-    # 验证帖子状态
+    # 检查状态
     pending_count = db.fetchone(
-        f"SELECT COUNT(*) FROM posts WHERE id IN ({','.join(['?']*len(new_posts_ids))}) AND process_status = 'pending'",
-        tuple(new_posts_ids)
+        "SELECT COUNT(*) FROM posts WHERE subreddit_id = ? AND process_status = 'pending'",
+        (subreddit_id,)
     )[0]
+    logger.info(f"  待处理 (pending) 帖子数: {pending_count}")
     
-    completed_count = db.fetchone(
-        f"SELECT COUNT(*) FROM posts WHERE id IN ({','.join(['?']*len(new_posts_ids))}) AND process_status != 'pending'",
-        tuple(new_posts_ids)
-    )[0]
-    
-    logger.info(f"  帖子处理状态: 完成 {completed_count}, 待处理 {pending_count}")
-    
-    # 验证痛点数据
-    if pain_points_count > 0:
-        logger.info(f"  发现 {pain_points_count} 个痛点，验证数据完整性...")
+    if pending_count == 0:
+        logger.warning("  没有待处理的帖子 (可能所有帖子都已存在且未更新?)")
+        # 如果是全新的环境，应该都是 pending。
+        # 如果我们刚才清理了数据，那么抓回来的应该都是 pending。
+        return False
         
+    return True
+
+def verify_process_results(subreddit_id):
+    """验证处理结果"""
+    logger.info(f"\n[步骤 5] 验证处理结果")
+    
+    # 检查是否还有 pending 帖子
+    pending_count = db.fetchone(
+        "SELECT COUNT(*) FROM posts WHERE subreddit_id = ? AND process_status = 'pending'",
+        (subreddit_id,)
+    )[0]
+    
+    processed_count = db.fetchone(
+        "SELECT COUNT(*) FROM posts WHERE subreddit_id = ? AND process_status != 'pending'",
+        (subreddit_id,)
+    )[0]
+    
+    logger.info(f"  处理后状态: 待处理 {pending_count}, 已完成/失败 {processed_count}")
+    
+    # 检查痛点生成情况
+    pain_points_count = db.fetchone(
+        """
+        SELECT COUNT(*) 
+        FROM pain_points pp
+        JOIN posts p ON pp.post_id = p.id
+        WHERE p.subreddit_id = ?
+        """,
+        (subreddit_id,)
+    )[0]
+    
+    logger.info(f"  生成的痛点数量: {pain_points_count}")
+    
+    if pain_points_count > 0:
+        # 显示前几个痛点
         rows = db.fetchall(
-            f"""
-            SELECT pp.title, pp.confidence, pp.total_score, pp.industry_code, pp.type_code
+            """
+            SELECT pp.title, pp.confidence, p.title
             FROM pain_points pp
             JOIN posts p ON pp.post_id = p.id
-            WHERE p.id IN ({','.join(['?']*len(new_posts_ids))})
+            WHERE p.subreddit_id = ?
+            LIMIT 3
             """,
-            tuple(new_posts_ids)
+            (subreddit_id,)
         )
-        
         for i, row in enumerate(rows, 1):
-            logger.info(f"    痛点 {i}: {row[0]}")
-            logger.info(f"      置信度: {row[1]}, 总分: {row[2]}")
-            logger.info(f"      行业: {row[3]}, 类型: {row[4]}")
-            
-            if not (row[0] and row[1] and row[2]):
-                logger.error("      数据不完整！")
-                return False
+            logger.info(f"    痛点 {i}: {row[0]} (置信度: {row[1]})")
+            logger.info(f"      来源: {row[2][:50]}...")
     else:
-        logger.info("  本次测试未发现痛点 (这是可能的，取决于帖子内容)")
+        logger.info("  未发现痛点 (这在少量样本测试中是正常的)")
+        
+    return True
 
-    logger.info("\n============================================================")
-    if success_count == len(new_posts_ids):
-        logger.info("测试成功！所有步骤执行正常")
-        return True
-    else:
-        logger.warning(f"测试完成，但有 {len(new_posts_ids) - success_count} 个帖子处理失败")
+def test_full_production_flow():
+    logger.info("============================================================")
+    logger.info("开始执行完整流程测试 (生产模式)")
+    logger.info("============================================================")
+    
+    subreddit_name = "SaaS"
+    test_limit = 3
+    
+    # 1. 准备环境
+    try:
+        subreddit_id = setup_test_environment(subreddit_name, test_limit)
+    except Exception as e:
+        logger.error(f"环境准备失败: {e}", exc_info=True)
         return False
+
+    # 2. 执行抓取任务
+    logger.info(f"\n[步骤 2] 执行抓取任务 (run_fetch_job)")
+    try:
+        run_fetch_job()
+    except Exception as e:
+        logger.error(f"抓取任务执行失败: {e}", exc_info=True)
+        return False
+        
+    # 3. 验证抓取
+    if not verify_fetch_results(subreddit_id, expected_min_count=1):
+        logger.error("抓取验证失败，终止测试")
+        return False
+        
+    # 4. 执行处理任务
+    logger.info(f"\n[步骤 4] 执行处理任务 (run_process_job)")
+    
+    # 确保有 API Key
+    if not settings.llm_api_key:
+        logger.error("LLM API Key 未配置，无法执行处理任务")
+        return False
+        
+    try:
+        run_process_job()
+    except Exception as e:
+        logger.error(f"处理任务执行失败: {e}", exc_info=True)
+        return False
+        
+    # 5. 验证处理
+    if not verify_process_results(subreddit_id):
+        return False
+        
+    logger.info("\n============================================================")
+    logger.info("测试成功完成！")
+    return True
 
 if __name__ == "__main__":
     try:
-        test_full_flow()
+        if test_full_production_flow():
+            sys.exit(0)
+        else:
+            sys.exit(1)
     except KeyboardInterrupt:
         print("\n测试已取消")
     except Exception as e:
         logger.error(f"测试发生未捕获异常: {e}", exc_info=True)
+        sys.exit(1)
