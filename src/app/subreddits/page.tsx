@@ -48,6 +48,17 @@ import {
   FileText,
 } from "lucide-react";
 
+/**
+ * 将时间字符串标准化为 UTC（如果没有时区信息）
+ */
+function normalizeToUTC(dateString: string): Date {
+  let normalized = dateString;
+  if (!dateString.endsWith("Z") && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+    normalized = dateString + "Z";
+  }
+  return new Date(normalized);
+}
+
 const FETCH_FREQUENCY_LABELS: Record<string, string> = {
   hourly: "每小时",
   daily: "每天",
@@ -224,7 +235,7 @@ export default function SubredditsPage() {
                     <TableCell>
                       {subreddit.last_fetched_at ? (
                         <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(subreddit.last_fetched_at), {
+                          {formatDistanceToNow(normalizeToUTC(subreddit.last_fetched_at), {
                             addSuffix: true,
                             locale: zhCN,
                           })}

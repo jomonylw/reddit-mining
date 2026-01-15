@@ -78,11 +78,23 @@ function MiniDimensionBar({ dimension, score }: { dimension: string; score: numb
 /**
  * 痛点卡片组件
  */
-export function PainPointCard({ painPoint, onClick, onCopy: _onCopy, className }: PainPointCardProps) {
+export function PainPointCard({
+  painPoint,
+  onClick,
+  onCopy: _onCopy,
+  className,
+}: PainPointCardProps) {
   // 格式化时间
   const formatTime = (dateString?: string) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
+
+    // 如果时间字符串没有时区信息，假设它是 UTC 时间
+    let normalizedDateString = dateString;
+    if (!dateString.endsWith("Z") && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+      normalizedDateString = dateString + "Z";
+    }
+
+    const date = new Date(normalizedDateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -240,29 +252,85 @@ export function PainPointCard({ painPoint, onClick, onCopy: _onCopy, className }
  */
 export function PainPointCardSkeleton() {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex gap-1.5">
-            <div className="h-5 w-16 bg-muted rounded animate-pulse" />
-            <div className="h-5 w-20 bg-muted rounded animate-pulse" />
+    <Card className="flex flex-col h-full">
+      <CardHeader>
+        {/* 标签行 */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex flex-wrap gap-1.5">
+            <div className="h-5 w-14 bg-muted rounded-full animate-pulse" />
+            <div className="h-5 w-16 bg-muted rounded-full animate-pulse" />
           </div>
-          <div className="h-6 w-12 bg-muted rounded animate-pulse" />
+          <div className="flex items-center gap-1">
+            <div className="h-6 w-10 bg-muted rounded-md animate-pulse" />
+            <div className="h-4 w-8 bg-muted/60 rounded animate-pulse" />
+          </div>
+        </div>
+
+        {/* 标题 */}
+        <div className="space-y-2">
+          <div className="h-5 w-full bg-muted rounded animate-pulse" />
+          <div className="h-5 w-3/4 bg-muted rounded animate-pulse" />
         </div>
       </CardHeader>
-      <CardContent className="pb-3">
-        <div className="h-5 w-full bg-muted rounded animate-pulse mb-2" />
-        <div className="h-4 w-3/4 bg-muted rounded animate-pulse mb-3" />
+
+      <CardContent className="space-y-4 flex-1">
+        {/* 描述 */}
         <div className="space-y-2">
-          <div className="h-3 w-full bg-muted/70 rounded animate-pulse" />
-          <div className="h-3 w-5/6 bg-muted/70 rounded animate-pulse" />
-          <div className="h-3 w-4/6 bg-muted/70 rounded animate-pulse" />
+          <div className="h-4 w-full bg-muted/70 rounded animate-pulse" />
+          <div className="h-4 w-5/6 bg-muted/70 rounded animate-pulse" />
+          <div className="h-4 w-4/6 bg-muted/70 rounded animate-pulse" />
+        </div>
+
+        {/* 维度评分迷你图 */}
+        <div className="flex flex-wrap gap-x-4 gap-y-2 p-2 bg-muted/30 rounded-lg">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <div className="h-3 w-3 bg-muted rounded animate-pulse" />
+              <div className="w-12 h-1.5 bg-muted rounded-full animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        {/* 目标用户群体 */}
+        <div className="flex items-start gap-2">
+          <div className="h-4 w-4 bg-muted rounded animate-pulse mt-0.5" />
+          <div className="flex flex-wrap gap-1.5">
+            <div className="h-5 w-16 bg-muted/60 rounded-md animate-pulse" />
+            <div className="h-5 w-20 bg-muted/60 rounded-md animate-pulse" />
+            <div className="h-5 w-14 bg-muted/60 rounded-md animate-pulse" />
+          </div>
+        </div>
+
+        {/* 行动建议预览 */}
+        <div className="relative overflow-hidden rounded-md bg-amber-50/30 dark:bg-amber-950/10 border border-amber-100/30 dark:border-amber-900/20">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400/40" />
+          <div className="p-2.5 pl-3.5 flex items-start gap-2">
+            <div className="h-4 w-4 bg-amber-200/50 dark:bg-amber-800/30 rounded animate-pulse mt-0.5" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 w-full bg-amber-200/50 dark:bg-amber-800/30 rounded animate-pulse" />
+              <div className="h-3 w-4/5 bg-amber-200/50 dark:bg-amber-800/30 rounded animate-pulse" />
+            </div>
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0">
-        <div className="flex items-center justify-between w-full">
-          <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-          <div className="h-7 w-20 bg-muted rounded animate-pulse" />
+
+      <CardFooter className="bg-muted/5 mt-auto">
+        <div className="flex items-center justify-between w-full text-xs">
+          {/* 来源和互动数据 */}
+          <div className="flex items-center gap-3">
+            <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div className="h-3 w-3 bg-muted/60 rounded animate-pulse" />
+                <div className="h-3 w-6 bg-muted/60 rounded animate-pulse" />
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="h-3 w-3 bg-muted/60 rounded animate-pulse" />
+                <div className="h-3 w-6 bg-muted/60 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+          <div className="h-3 w-12 bg-muted/60 rounded animate-pulse" />
         </div>
       </CardFooter>
     </Card>

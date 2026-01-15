@@ -10,17 +10,17 @@ import { NextResponse } from "next/server";
  */
 export function successResponse<T>(
   data: T,
-  meta?: {
+  pagination?: {
     page?: number;
-    per_page?: number;
+    limit?: number;
     total?: number;
-    total_pages?: number;
+    totalPages?: number;
   }
 ) {
   return NextResponse.json({
     success: true,
     data,
-    ...(meta && { meta }),
+    ...(pagination && { pagination }),
   });
 }
 

@@ -57,7 +57,7 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
       label: PAIN_POINT_TYPE_NAMES[filters.type] || filters.type,
     });
   }
-  if (filters.sort && filters.sort !== "total_score") {
+  if (filters.sort && filters.sort !== "created_at") {
     const sortLabel = sortOptions.find((o) => o.value === filters.sort)?.label;
     activeFilters.push({
       key: "sort",
@@ -110,7 +110,7 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
     const newFilters = { ...filters };
     if (key === "industry") delete newFilters.industry;
     if (key === "type") delete newFilters.type;
-    if (key === "sort") newFilters.sort = "total_score";
+    if (key === "sort") newFilters.sort = "created_at";
     onFiltersChange({ ...newFilters, page: 1 });
   };
 
@@ -199,7 +199,7 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
               <div className="space-y-2">
                 <label className="text-sm text-muted-foreground">排序方式</label>
                 <div className="flex gap-2">
-                  <Select value={filters.sort || "total_score"} onValueChange={handleSortChange}>
+                  <Select value={filters.sort || "created_at"} onValueChange={handleSortChange}>
                     <SelectTrigger className="flex-1">
                       <SelectValue />
                     </SelectTrigger>

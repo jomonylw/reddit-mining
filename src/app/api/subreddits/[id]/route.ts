@@ -2,13 +2,13 @@
  * 单个 Subreddit 管理 API
  * GET /api/subreddits/[id] - 获取详情
  * PATCH /api/subreddits/[id] - 更新配置
- * DELETE /api/subreddits/[id] - 删除配置
+ * DELETE /api/subreddits/[id] - 删除配置（级联删除相关数据）
  */
 
 import { NextRequest } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { subreddits } from "@/lib/db/schema";
+import { subreddits, posts, painPoints, painPointTags } from "@/lib/db/schema";
 import { successResponse, ApiErrors } from "@/lib/api/response";
 
 type Params = { params: Promise<{ id: string }> };
@@ -125,7 +125,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 /**
  * DELETE /api/subreddits/[id]
- * 删除 Subreddit 配置
+ * 删除 Subreddit 配置（级联删除相关数据）
+ * 删除顺序：painPointTags -> painPoints -> posts -> subreddit
  */
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
@@ -138,7 +139,36 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       return ApiErrors.notFound("Subreddit");
     }
 
-    // 删除记录
+    // 获取该 subreddit 下的所有 posts
+    const relatedPosts = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(eq(posts.subredditId, id));
+
+    if (relatedPosts.length > 0) {
+      const postIds = relatedPosts.map((p) => p.id);
+
+      // 获取这些 posts 关联的所有 painPoints
+      const relatedPainPoints = await db
+        .select({ id: painPoints.id })
+        .from(painPoints)
+        .where(inArray(painPoints.postId, postIds));
+
+      if (relatedPainPoints.length > 0) {
+        const painPointIds = relatedPainPoints.map((pp) => pp.id);
+
+        // 1. 删除 painPointTags（痛点标签关联）
+        await db.delete(painPointTags).where(inArray(painPointTags.painPointId, painPointIds));
+
+        // 2. 删除 painPoints（痛点）
+        await db.delete(painPoints).where(inArray(painPoints.id, painPointIds));
+      }
+
+      // 3. 删除 posts（帖子）
+      await db.delete(posts).where(inArray(posts.id, postIds));
+    }
+
+    // 4. 删除 subreddit
     await db.delete(subreddits).where(eq(subreddits.id, id));
 
     // 返回 204 No Content

@@ -128,3 +128,22 @@ export async function getIndustries(): Promise<ApiResponse<Industry[]>> {
 export async function getPainPointTypes(): Promise<ApiResponse<PainPointType[]>> {
   return fetchApi<PainPointType[]>("/pain-point-types");
 }
+
+// ============================================================================
+// 统计 API
+// ============================================================================
+
+export interface Stats {
+  new_today: number;
+  total_pain_points: number;
+  active_subreddits: number;
+  pending_posts: number;
+  avg_score: number;
+}
+
+/**
+ * 获取系统统计信息
+ */
+export async function getStats(): Promise<ApiResponse<Stats>> {
+  return fetchApi<Stats>("/stats");
+}

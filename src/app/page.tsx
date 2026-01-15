@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { usePainPoints } from "@/hooks/use-pain-points";
+import { useStats } from "@/hooks/use-stats";
 import { FilterBar } from "@/components/business/filter-bar";
 import { StatsTicker } from "@/components/business/stats-ticker";
 import { PainPointCard, PainPointCardSkeleton } from "@/components/business/pain-point-card";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 const DEFAULT_FILTERS: PainPointsQuery = {
   page: 1,
   limit: 12,
-  sort: "total_score",
+  sort: "created_at",
   order: "desc",
 };
 
@@ -25,6 +26,7 @@ export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data, isLoading, isError, error } = usePainPoints(filters);
+  const { data: stats } = useStats();
 
   const painPoints = data?.painPoints || [];
   const pagination = data?.pagination;
@@ -86,10 +88,10 @@ export default function HomePage() {
 
       {/* 统计栏 */}
       <StatsTicker
-        totalPainPoints={pagination?.total || painPoints.length}
-        newToday={0} // TODO: Calculate from API
+        totalPainPoints={stats?.total_pain_points || pagination?.total || painPoints.length}
+        newToday={stats?.new_today || 0}
         topIndustries={topIndustries.slice(0, 3)}
-        avgScore={avgScore}
+        avgScore={stats?.avg_score || avgScore}
       />
 
       {/* 筛选栏 */}

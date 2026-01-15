@@ -18,6 +18,17 @@ interface PainPointModalProps {
 }
 
 /**
+ * 将时间字符串标准化为 UTC（如果没有时区信息）
+ */
+function normalizeToUTC(dateString: string): Date {
+  let normalized = dateString;
+  if (!dateString.endsWith("Z") && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+    normalized = dateString + "Z";
+  }
+  return new Date(normalized);
+}
+
+/**
  * 痛点详情弹窗组件
  */
 export function PainPointModal({ painPoint, open, onOpenChange }: PainPointModalProps) {
@@ -61,12 +72,19 @@ export function PainPointModal({ painPoint, open, onOpenChange }: PainPointModal
                 <TypeBadge code={painPoint.type_code as PainPointTypeCode} size="sm" />
               )}
               <span className="text-muted-foreground mx-1">·</span>
-              <span className="text-xs text-muted-foreground">r/{subredditName}</span>
+              <a
+                href={`https://www.reddit.com/r/${subredditName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+              >
+                r/{subredditName}
+              </a>
               {painPoint.created_at && (
                 <>
                   <span className="text-muted-foreground mx-1">·</span>
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(painPoint.created_at), {
+                    {formatDistanceToNow(normalizeToUTC(painPoint.created_at), {
                       addSuffix: true,
                       locale: zhCN,
                     })}
@@ -108,7 +126,14 @@ export function PainPointModal({ painPoint, open, onOpenChange }: PainPointModal
                 <TypeBadge code={painPoint.type_code as PainPointTypeCode} size="sm" />
               )}
               <span className="text-muted-foreground">·</span>
-              <span className="text-xs text-muted-foreground">r/{subredditName}</span>
+              <a
+                href={`https://www.reddit.com/r/${subredditName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+              >
+                r/{subredditName}
+              </a>
             </div>
 
             {/* Stats bar - 紧凑的统计信息条 */}

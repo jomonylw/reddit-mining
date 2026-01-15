@@ -25,9 +25,10 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
 
-    // 解析分页参数
+    // 解析分页参数（同时支持 limit 和 per_page 参数）
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const perPage = Math.min(100, Math.max(1, parseInt(searchParams.get("per_page") || "20", 10)));
+    const limitParam = searchParams.get("limit") || searchParams.get("per_page") || "20";
+    const perPage = Math.min(100, Math.max(1, parseInt(limitParam, 10)));
     const offset = (page - 1) * perPage;
 
     // 解析筛选参数
@@ -283,9 +284,9 @@ export async function GET(request: NextRequest) {
 
     return successResponse(data, {
       page,
-      per_page: perPage,
+      limit: perPage,
       total,
-      total_pages: totalPages,
+      totalPages,
     });
   } catch (error) {
     console.error("获取痛点列表失败:", error);

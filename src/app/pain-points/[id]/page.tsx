@@ -18,6 +18,17 @@ import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { toast } from "sonner";
 
+/**
+ * 将时间字符串标准化为 UTC（如果没有时区信息）
+ */
+function normalizeToUTC(dateString: string): Date {
+  let normalized = dateString;
+  if (!dateString.endsWith("Z") && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+    normalized = dateString + "Z";
+  }
+  return new Date(normalized);
+}
+
 export default function PainPointDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -56,7 +67,9 @@ export default function PainPointDetailPage() {
 
   // 获取帖子信息
   const post = painPoint.post;
-  const subredditName = post?.subreddit?.name || "unknown";
+  // API 返回的 subreddit 可能是字符串（直接name）或对象（Subreddit类型）
+  const subredditName =
+    typeof post?.subreddit === "string" ? post.subreddit : (post?.subreddit?.name ?? "unknown");
   const sourceUrl = post?.url;
 
   return (
@@ -82,19 +95,26 @@ export default function PainPointDetailPage() {
                 {painPoint.title}
               </h1>
               <div className="flex flex-wrap items-center gap-1.5 mt-1 hidden sm:flex">
-                {painPoint.industry_code && (
-                  <IndustryBadge code={painPoint.industry_code as IndustryCode} size="sm" />
+                {painPoint.industry?.code && (
+                  <IndustryBadge code={painPoint.industry.code as IndustryCode} size="sm" />
                 )}
-                {painPoint.type_code && (
-                  <TypeBadge code={painPoint.type_code as PainPointTypeCode} size="sm" />
+                {painPoint.type?.code && (
+                  <TypeBadge code={painPoint.type.code as PainPointTypeCode} size="sm" />
                 )}
                 <span className="text-muted-foreground mx-1">·</span>
-                <span className="text-xs text-muted-foreground">r/{subredditName}</span>
+                <a
+                  href={`https://www.reddit.com/r/${subredditName}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                >
+                  r/{subredditName}
+                </a>
                 {painPoint.created_at && (
                   <>
                     <span className="text-muted-foreground mx-1">·</span>
                     <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(painPoint.created_at), {
+                      {formatDistanceToNow(normalizeToUTC(painPoint.created_at), {
                         addSuffix: true,
                         locale: zhCN,
                       })}
@@ -119,14 +139,21 @@ export default function PainPointDetailPage() {
           <div className="px-4 py-4 sm:px-6 sm:py-5 space-y-3 sm:space-y-4">
             {/* Mobile Tags - 移动端显示的标签 */}
             <div className="flex flex-wrap items-center gap-1.5 sm:hidden">
-              {painPoint.industry_code && (
-                <IndustryBadge code={painPoint.industry_code as IndustryCode} size="sm" />
+              {painPoint.industry?.code && (
+                <IndustryBadge code={painPoint.industry.code as IndustryCode} size="sm" />
               )}
-              {painPoint.type_code && (
-                <TypeBadge code={painPoint.type_code as PainPointTypeCode} size="sm" />
+              {painPoint.type?.code && (
+                <TypeBadge code={painPoint.type.code as PainPointTypeCode} size="sm" />
               )}
               <span className="text-muted-foreground">·</span>
-              <span className="text-xs text-muted-foreground">r/{subredditName}</span>
+              <a
+                href={`https://www.reddit.com/r/${subredditName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+              >
+                r/{subredditName}
+              </a>
             </div>
 
             {/* Stats bar - 紧凑的统计信息条 */}

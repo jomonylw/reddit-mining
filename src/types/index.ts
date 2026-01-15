@@ -96,6 +96,7 @@ export interface PainPoint {
   post?: RedditPost;
   industry?: Industry;
   pain_point_type?: PainPointType;
+  type?: PainPointType; // API 返回的字段名
 }
 
 // Reddit 帖子
