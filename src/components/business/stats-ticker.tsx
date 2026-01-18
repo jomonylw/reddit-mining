@@ -8,6 +8,7 @@ interface StatsTickerProps {
   newToday?: number;
   topIndustries?: IndustryCode[];
   avgScore?: number;
+  onIndustryClick?: (industry: IndustryCode) => void;
 }
 
 /**
@@ -18,6 +19,7 @@ export function StatsTicker({
   newToday = 0,
   topIndustries = [],
   avgScore = 0,
+  onIndustryClick,
 }: StatsTickerProps) {
   const stats = [
     {
@@ -59,12 +61,22 @@ export function StatsTicker({
           <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             <span className="text-sm text-muted-foreground">热门领域:</span>
-            <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
-              {topIndustries
-                .slice(0, 3)
-                .map((code) => INDUSTRY_NAMES[code] || code)
-                .join(", ")}
-            </span>
+            <div className="flex items-center gap-1">
+              {topIndustries.slice(0, 3).map((code, index) => (
+                <span key={code} className="inline-flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => onIndustryClick?.(code)}
+                    className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline transition-colors cursor-pointer"
+                  >
+                    {INDUSTRY_NAMES[code] || code}
+                  </button>
+                  {index < Math.min(topIndustries.length, 3) - 1 && (
+                    <span className="text-purple-600 dark:text-purple-400">,&nbsp;</span>
+                  )}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>

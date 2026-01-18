@@ -92,6 +92,9 @@ export default function HomePage() {
         newToday={stats?.new_today || 0}
         topIndustries={topIndustries.slice(0, 3)}
         avgScore={stats?.avg_score || avgScore}
+        onIndustryClick={(industry) => {
+          setFilters((prev) => ({ ...prev, industry, page: 1 }));
+        }}
       />
 
       {/* 筛选栏 */}

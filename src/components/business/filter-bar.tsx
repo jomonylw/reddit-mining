@@ -246,20 +246,29 @@ export function FilterBar({ filters, onFiltersChange, onClear }: FilterBarProps)
           {filters.search && (
             <Badge variant="secondary" className="gap-1">
               搜索: {filters.search}
-              <X
-                className="h-3 w-3 cursor-pointer"
+              <button
+                type="button"
                 onClick={() => {
                   setSearchValue("");
                   onFiltersChange({ ...filters, search: undefined, page: 1 });
                 }}
-              />
+                className="ml-1 rounded-full hover:bg-muted-foreground/20"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
 
           {activeFilters.map((filter) => (
             <Badge key={filter.key} variant="secondary" className="gap-1">
               {filter.label}
-              <X className="h-3 w-3 cursor-pointer" onClick={() => removeFilter(filter.key)} />
+              <button
+                type="button"
+                onClick={() => removeFilter(filter.key)}
+                className="ml-1 rounded-full hover:bg-muted-foreground/20"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           ))}
 
